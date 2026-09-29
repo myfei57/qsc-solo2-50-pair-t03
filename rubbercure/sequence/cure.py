@@ -113,9 +113,16 @@ class CureSequence:
             max_age_s=self.config.steam.purge_token_max_age_s,
         )
         self.recorder.note(
-            "lift_close", "lift", mold_id=plan.mold_id, clamp_force_kn=closed["clamp_force_kn"]
+            "lift_close",
+            "lift",
+            mold_id=plan.mold_id,
+            clamp_force_kn=closed["clamp_force_kn"],
+            lock_token_id=closed["lock_token_id"],
         )
 
+        # 升温前再做一次锁模力联锁：凭据有效且复测达标才允许通汽，
+        # 杜绝"卡在半截判到位、升温跟着跑"。
+        press.lift.require_locked(component="steam")
         press.transition(PressPhase.HEATING)
         steam = press.steam.open_steam(plan.target_kpa)
         self.recorder.note(
@@ -143,7 +150,8 @@ class CureSequence:
         )
         self.last_confirmation = confirmation.as_dict()
 
-        press.lift.require_closed()
+        # 计时前最后一道锁模确认：必须有达标锁模力凭据才允许开表。
+        press.lift.require_locked(component="timer")
         press.timer.set_clock_now(self.clock.now())
         started = start_cure(
             press.timer,

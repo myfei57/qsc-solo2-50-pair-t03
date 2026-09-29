@@ -27,7 +27,8 @@ class LiftStateMachine:
 
     _ALLOWED = {
         LiftPhase.OPEN: (LiftPhase.CLOSING, LiftPhase.CLOSED),
-        LiftPhase.CLOSING: (LiftPhase.CLOSED, LiftPhase.OPEN),
+        # 合模卡顿（行程卡滞或锁模力不达标）时允许退回开模相处理故障。
+        LiftPhase.CLOSING: (LiftPhase.CLOSED, LiftPhase.OPEN, LiftPhase.OPENING),
         LiftPhase.CLOSED: (LiftPhase.OPENING, LiftPhase.CLOSING),
         LiftPhase.OPENING: (LiftPhase.OPEN, LiftPhase.CLOSED),
     }

@@ -29,6 +29,26 @@ def test_cure_sequence_runs_steps_in_order(platform):
     assert report["topology_missing"] == []
     assert report["timer"]["phase"] == "curing"
     assert report["timer"]["planned_s"] > 0
+    lift = platform.press("press-01").lift
+    assert lift.is_locked()
+    assert lift.lock_token() is not None
+    close_trace = next(item for item in report["trace"] if item["name"] == "lift_close")
+    assert close_trace["detail"]["lock_token_id"] == lift.lock_token().token_id
+    open_report = platform.run_open()
+    assert open_report["violations"] == []
+    opened = next(ev for ev in platform.bus.history("lift") if ev.action == "mold_opened")
+    assert opened.payload["lock_token_id"] == close_trace["detail"]["lock_token_id"]
+    assert lift.lock_token() is None
+
+
+def test_heating_is_refused_when_clamp_jams_halfway(platform):
+    unit = platform.press("press-01")
+    unit.load_mold("mold-J")
+    with pytest.raises(InterlockError):
+        unit.lift.close_clamp("mold-J", jam_at_pct=5.0)
+    assert not unit.lift.is_locked()
+    with pytest.raises(InterlockError):
+        unit.lift.require_locked(component="steam")
 
 
 def test_purge_generation_matches_registered_mapping(platform):
