@@ -130,6 +130,17 @@ class ConsoleAPI:
         except RubberCureError as error:
             return {"ok": False, "error": self.platform.note_error(error)}
 
+    def abort_close(self, payload: dict) -> dict:
+        """合模卡联锁后的现场排障：退回全开位，本模次作废待重新合模。"""
+
+        try:
+            return {
+                "ok": True,
+                "report": self.platform.abort_close(str(payload.get("press_id", "press-01"))),
+            }
+        except RubberCureError as error:
+            return {"ok": False, "error": self.platform.note_error(error)}
+
     def step(self, payload: dict) -> dict:
         """推进一个机群控制周期。"""
 

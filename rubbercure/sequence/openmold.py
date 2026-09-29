@@ -66,10 +66,16 @@ class OpenSequence:
             "steam_vent", "steam", mold_id=mold_id, residual_kpa=round(vent.residual_kpa, 3)
         )
 
+        lock_token = press.lift.require_token_for(mold_id)
         press.transition(PressPhase.OPENING)
         opened = open_mold(press.lift, vent, self.bus, mold_id)
         self.recorder.note(
-            "lift_open", "lift", mold_id=mold_id, opening_pct=opened["opening_pct"]
+            "lift_open",
+            "lift",
+            mold_id=mold_id,
+            opening_pct=opened["opening_pct"],
+            locked_at=round(lock_token.locked_at, 3),
+            clamp_force_kn=round(lock_token.clamp_force_kn, 2),
         )
 
         press.clear_mold()

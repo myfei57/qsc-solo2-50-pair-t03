@@ -32,7 +32,7 @@ class PressStateMachine:
     _ALLOWED = {
         PressPhase.IDLE: (PressPhase.MOLD_LOADED,),
         PressPhase.MOLD_LOADED: (PressPhase.CLAMPING, PressPhase.IDLE),
-        PressPhase.CLAMPING: (PressPhase.HEATING, PressPhase.MOLD_LOADED),
+        PressPhase.CLAMPING: (PressPhase.HEATING, PressPhase.MOLD_LOADED, PressPhase.IDLE),
         PressPhase.HEATING: (PressPhase.CURING, PressPhase.VENTING),
         PressPhase.CURING: (PressPhase.COOLING, PressPhase.VENTING),
         PressPhase.COOLING: (PressPhase.VENTING,),

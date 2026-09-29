@@ -46,7 +46,7 @@ class CuringPress:
         self.bus = bus
         self.store = store
         self.config = config
-        self.lift = LiftUnit(bus)
+        self.lift = LiftUnit(bus, clock=clock)
         self.steam = SteamUnit(clock, bus, store, config.steam)
         self.temp_persister = TempPersister(clock, bus, store, config.temp)
         self.temp_loop = TempLoop(

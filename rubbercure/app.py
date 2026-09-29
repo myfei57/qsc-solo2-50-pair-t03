@@ -18,7 +18,7 @@ from .batch.batch import BatchScheduler
 from .batch.profile import BatchProfile
 from .clock import Clock, SystemClock
 from .config import PlatformConfig, default_config
-from .errors import RubberCureError
+from .errors import RubberCureError, SequenceError
 from .eventbus import Event, EventBus
 from .mold.mapping import SensorMapBook
 from .mold.registry import MoldRegistry
@@ -27,6 +27,7 @@ from .ns.registry import NamespaceRegistry
 from .ns.topology import Topology, build_default_topology
 from .press.fleet import PressFleet
 from .press.summary import summarize_fleet
+from .press.transitions import PressPhase
 from .sequence.cure import CureRunPlan, CureSequence
 from .sequence.dispatch import DispatchSequence
 from .sequence.openmold import OpenSequence
@@ -261,6 +262,32 @@ class Platform:
             )
             return sequence.run()
 
+    def abort_close(self, press_id: str = DEFAULT_PRESS_ID) -> dict:
+        """合模卡住后的现场排障：退回全开位并清掉阻挡，本模次不进入升温。
+
+        卡模联锁触发后，合模停在 CLOSING 相位、没有锁模凭据，升温与开模都被
+        挡住。现场清障完成后调用本动作把模板退回取件位，模具重新具备合模条件；
+        若其实没有在合模（误触排障），直接拒绝，避免空行程。
+        """
+
+        with self._lock:
+            unit = self.press(press_id)
+            if unit.phase is not PressPhase.CLAMPING:
+                raise SequenceError(
+                    f"硫化机 {press_id} 当前相位 {unit.phase.value}，不在合模中，无需排障退模",
+                    component="press",
+                )
+            mold_id = unit.require_mold()
+            opening = unit.lift.retract_clamp(mold_id)
+            unit.transition(PressPhase.IDLE)
+            unit.clear_mold()
+            return {
+                "press_id": press_id,
+                "mold_id": mold_id,
+                "opening_pct": round(opening, 3),
+                "phase": unit.phase.value,
+            }
+
     def run_dispatch(self, press_id: str = DEFAULT_PRESS_ID) -> dict:
         """在一台硫化机上跑一次机群调度顺序。"""
 
@@ -489,6 +516,7 @@ class Platform:
                 "/api/readiness",
                 "/api/cure",
                 "/api/open",
+                "/api/abort_close",
                 "/api/dispatch",
                 "/api/stop",
                 "/api/step",

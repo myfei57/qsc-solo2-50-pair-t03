@@ -113,7 +113,12 @@ class CureSequence:
             max_age_s=self.config.steam.purge_token_max_age_s,
         )
         self.recorder.note(
-            "lift_close", "lift", mold_id=plan.mold_id, clamp_force_kn=closed["clamp_force_kn"]
+            "lift_close",
+            "lift",
+            mold_id=plan.mold_id,
+            clamp_force_kn=closed["clamp_force_kn"],
+            required_kn=closed["required_kn"],
+            locked_at=closed["locked_at"],
         )
 
         press.transition(PressPhase.HEATING)
@@ -143,7 +148,8 @@ class CureSequence:
         )
         self.last_confirmation = confirmation.as_dict()
 
-        press.lift.require_closed()
+        # 升温、计时前再次出示锁模凭据：防止有人绕过合模动作直接推相位。
+        press.lift.require_locked()
         press.timer.set_clock_now(self.clock.now())
         started = start_cure(
             press.timer,
